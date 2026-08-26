@@ -5,7 +5,7 @@ import pandas as pd
 from boatrace_lzh import LzhDownloader
 
 TARGET=date(2026,8,27)
-FW=str.maketrans('０１２３４５６７８９','0123456789')
+FW=str.maketrans('０１２３４５６７８９Ｒ','0123456789R')
 dl=LzhDownloader(cache_dir='./cache')
 files=dl.download(TARGET,'schedule')
 if not files: raise SystemExit('B file not downloaded')
