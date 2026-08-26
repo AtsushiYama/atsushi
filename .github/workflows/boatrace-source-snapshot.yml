@@ -1,0 +1,40 @@
+name: BoatRace 2026 Source Snapshot
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - '.github/workflows/boatrace-source-snapshot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Sparse checkout public 2026 cards and results
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/BoatraceCSV/boatracecsv.github.io.git source
+          cd source
+          git sparse-checkout set \
+            data/programs/race_cards/2026 \
+            data/results/realtime/2026
+          git checkout
+          echo "cards_files=$(find data/programs/race_cards/2026 -type f | wc -l)"
+          echo "results_files=$(find data/results/realtime/2026 -type f | wc -l)"
+
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: boatrace-source-2026-live
+          path: |
+            source/data/programs/race_cards/2026/
+            source/data/results/realtime/2026/
+          retention-days: 1
+          if-no-files-found: error
