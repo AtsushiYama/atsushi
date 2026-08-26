@@ -5,7 +5,7 @@ on:
     branches: [ master ]
     paths:
       - '.github/workflows/boatrace-oos.yml'
-      - 'boatrace_oos/assets/**'
+      - 'boatrace_oos/assets/READY'
   workflow_dispatch:
 
 permissions:
@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -f boatrace_oos/assets/model.cms ] || [ ! -f boatrace_oos/assets/history.cms ] || [ ! -f boatrace_oos/assets/runner.cms ]; then
+          if [ ! -f boatrace_oos/assets/READY ]; then
             mkdir -p boatrace_oos/keytmp
             openssl req -x509 -newkey rsa:3072 -nodes \
               -keyout boatrace_oos/keytmp/private.pem \
@@ -70,22 +70,22 @@ jobs:
           unzip -q boatrace_oos/keytmp/key.zip -d boatrace_oos/keytmp
           test -s boatrace_oos/keytmp/private.pem
 
-      - name: Decrypt and verify frozen assets
+      - name: Reassemble, decrypt, and verify frozen bundle
         if: steps.keybootstrap.outputs.bootstrap == 'false'
         shell: bash
         run: |
           set -euo pipefail
-          for name in model history runner; do
-            openssl cms -decrypt -binary -inform DER \
-              -in "boatrace_oos/assets/${name}.cms" \
-              -recip boatrace_oos/assets/cert.pem \
-              -inkey boatrace_oos/keytmp/private.pem \
-              -out "boatrace_oos/${name}.payload"
-          done
-          mv boatrace_oos/model.payload boatrace_oos/model.txt.gz
-          mv boatrace_oos/history.payload boatrace_oos/history.pkl.gz
-          mv boatrace_oos/runner.payload boatrace_oos/run_oos.py
-          gunzip -c boatrace_oos/model.txt.gz > boatrace_oos/boatrace_strength_v1_lgbm.txt
+          test -s boatrace_oos/payload/cert.pem
+          cat boatrace_oos/payload/part_* | base64 -d > boatrace_oos/payload/bundle.cms
+          openssl cms -decrypt -binary -inform DER \
+            -in boatrace_oos/payload/bundle.cms \
+            -recip boatrace_oos/payload/cert.pem \
+            -inkey boatrace_oos/keytmp/private.pem \
+            -out boatrace_oos/payload/bundle.tar
+          tar -xf boatrace_oos/payload/bundle.tar -C boatrace_oos
+          xz -dc boatrace_oos/model.txt.xz > boatrace_oos/boatrace_strength_v1_lgbm.txt
+          xz -dc boatrace_oos/history_compact.npz.xz > boatrace_oos/history_compact.npz
+          xz -dc boatrace_oos/run_oos.py.xz > boatrace_oos/run_oos.py
           actual=$(sha256sum boatrace_oos/boatrace_strength_v1_lgbm.txt | awk '{print $1}')
           expected='334b3a54a482a957f50c51b40614797821ae765d221734b92b95f1d4fb96cde0'
           echo "model_sha256=$actual"
