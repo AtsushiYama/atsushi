@@ -5,7 +5,8 @@ on:
     branches: [ master ]
     paths:
       - '.github/workflows/boatrace-oos.yml'
-      - 'boatrace_oos/assets/READY'
+      - 'boatrace_oos/bootstrap_frozen.py'
+      - 'boatrace_oos/run_oos.py'
   workflow_dispatch:
 
 permissions:
@@ -15,88 +16,37 @@ permissions:
 jobs:
   oos:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
 
-      - name: Key bootstrap
-        id: keybootstrap
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ ! -f boatrace_oos/assets/READY ]; then
-            mkdir -p boatrace_oos/keytmp
-            openssl req -x509 -newkey rsa:3072 -nodes \
-              -keyout boatrace_oos/keytmp/private.pem \
-              -out boatrace_oos/keytmp/cert.pem \
-              -subj '/CN=BoatRace-OOS-Ephemeral' -days 1 >/dev/null 2>&1
-            echo 'bootstrap=true' >> "$GITHUB_OUTPUT"
-            echo '-----BEGIN OOS CERTIFICATE BASE64-----'
-            base64 -w0 boatrace_oos/keytmp/cert.pem
-            echo
-            echo '-----END OOS CERTIFICATE BASE64-----'
-          else
-            echo 'bootstrap=false' >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Preserve private key as short-lived artifact
-        if: steps.keybootstrap.outputs.bootstrap == 'true'
-        uses: actions/upload-artifact@v4
+      - uses: actions/setup-python@v5
         with:
-          name: boatrace-oos-private-key
-          path: boatrace_oos/keytmp/private.pem
-          retention-days: 1
-          if-no-files-found: error
+          python-version: '3.12'
 
-      - name: Recover ephemeral private key
-        if: steps.keybootstrap.outputs.bootstrap == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Install LZH and Python dependencies
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p boatrace_oos/keytmp
-          aid=$(curl -fsSL \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=boatrace-oos-private-key&per_page=100" \
-            | jq -r '.artifacts | map(select(.expired == false)) | sort_by(.created_at) | reverse | .[0].id // empty')
-          test -n "$aid"
-          curl -fsSL -L \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${aid}/zip" \
-            -o boatrace_oos/keytmp/key.zip
-          unzip -q boatrace_oos/keytmp/key.zip -d boatrace_oos/keytmp
-          test -s boatrace_oos/keytmp/private.pem
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full
+          python -m pip install --quiet --disable-pip-version-check \
+            'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' 'numba==0.61.2' requests
 
-      - name: Reassemble, decrypt, and verify frozen bundle
-        if: steps.keybootstrap.outputs.bootstrap == 'false'
+      - name: Rebuild frozen model from official 2023-2025 K results
+        run: python boatrace_oos/bootstrap_frozen.py
+
+      - name: Verify frozen model gate
         shell: bash
         run: |
           set -euo pipefail
-          test -s boatrace_oos/payload/cert.pem
-          cat boatrace_oos/payload/part_* | base64 -d > boatrace_oos/payload/bundle.cms
-          openssl cms -decrypt -binary -inform DER \
-            -in boatrace_oos/payload/bundle.cms \
-            -recip boatrace_oos/payload/cert.pem \
-            -inkey boatrace_oos/keytmp/private.pem \
-            -out boatrace_oos/payload/bundle.tar
-          tar -xf boatrace_oos/payload/bundle.tar -C boatrace_oos
-          gunzip -c boatrace_oos/model.txt.gz > boatrace_oos/boatrace_strength_v1_lgbm.txt
           actual=$(sha256sum boatrace_oos/boatrace_strength_v1_lgbm.txt | awk '{print $1}')
           expected='334b3a54a482a957f50c51b40614797821ae765d221734b92b95f1d4fb96cde0'
           echo "model_sha256=$actual"
           test "$actual" = "$expected"
           test -s boatrace_oos/history.pkl.gz
-          test -s boatrace_oos/run_oos.py
-
-      - name: Install analysis dependencies
-        if: steps.keybootstrap.outputs.bootstrap == 'false'
-        run: python -m pip install --quiet --disable-pip-version-check 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0'
 
       - name: Sparse checkout public 2026 CSV data
-        if: steps.keybootstrap.outputs.bootstrap == 'false'
         shell: bash
         run: |
           set -euo pipefail
@@ -111,16 +61,27 @@ jobs:
             data/results/payouts/2026/08
           git checkout
 
-      - name: Run frozen OOS validation
-        if: steps.keybootstrap.outputs.bootstrap == 'false'
+      - name: Patch reporting-only fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          p='boatrace_oos/run_oos.py'
+          s=open(p,encoding='utf-8').read()
+          s=s.replace("rows=[type('R',(),{'date':r.date,'stake':r.stake,'ret':r.ret}) for r in x.itertuples()]", "rows=[{'date':r.date,'stake':r.stake,'ret':r.ret} for r in x.itertuples()]")
+          s=s.replace("('3.5<=combined<4.0',(ev.combined_odds>=3.5)&(ev.combined_odds<4.0)),", "('3.5<=combined<4.0',(ev.combined_odds>=3.5)&(ev.combined_odds<4.0)),('3.0<=combined<4.0',(ev.combined_odds>=3.0)&(ev.combined_odds<4.0)),")
+          open(p,'w',encoding='utf-8').write(s)
+          PY
+
+      - name: Run frozen 2026 OOS validation
         run: python boatrace_oos/run_oos.py
 
       - name: Print aggregate report
-        if: steps.keybootstrap.outputs.bootstrap == 'false'
-        run: cat boatrace_oos/output/REPORT.md
+        run: |
+          cat boatrace_oos/output/REPORT.md
+          echo '--- RESULT JSON ---'
+          cat boatrace_oos/output/result.json
 
       - name: Preserve detailed OOS output privately
-        if: steps.keybootstrap.outputs.bootstrap == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: boatrace-oos-results-20260801-0823
