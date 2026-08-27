@@ -1,0 +1,32 @@
+name: BoatRace 20260828 Temp Scrape
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - '.github/workflows/boatrace-20260828-temp.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full
+          python -m pip install --quiet boatrace-lzh pandas
+      - name: Parse official B file for 2026-08-28
+        run: python boatrace_oos/scrape_official_20260828_temp.py
+      - name: Upload cards
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-preday-20260828-temp
+          path: official_preday_20260828.csv
+          retention-days: 1
+          if-no-files-found: error
