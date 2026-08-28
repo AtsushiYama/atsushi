@@ -1,4 +1,4 @@
-name: BoatRace Biwako9 Tamagawa7 20260828 Temp
+name: BoatRace Amagasaki9 Heiwajima7 20260828 Temp
 on:
   push:
     branches: [ master ]
@@ -32,4 +32,4 @@ jobs:
           git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/previews/tkz/2026/08 data/previews/sui/2026/08 data/previews/od3/2026/08
           git checkout
       - name: Run exact inference
-        run: python boatrace_oos/infer_20260828_biwako9_tamagawa7_temp.py
+        run: python boatrace_oos/infer_20260828_amagasaki9_heiwajima7_temp.py
