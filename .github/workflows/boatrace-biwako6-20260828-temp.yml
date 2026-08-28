@@ -1,4 +1,4 @@
-name: BoatRace Marugame8 Screenshot Recheck 20260828
+name: BoatRace 20260828 Daily 36R Audit
 on:
   push:
     branches: [ master ]
@@ -29,7 +29,7 @@ jobs:
         run: |
           git clone --depth 1 --filter=blob:none --sparse https://github.com/BoatraceCSV/boatracecsv.github.io.git boatrace_oos/source
           cd boatrace_oos/source
-          git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/previews/tkz/2026/08 data/previews/sui/2026/08 data/previews/od3/2026/08
+          git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/results/payouts/2026 data/previews/tkz/2026/08 data/previews/sui/2026/08 data/previews/od3/2026/08
           git checkout
-      - name: Run exact inference
-        run: python boatrace_oos/infer_20260828_amagasaki10_temp.py
+      - name: Run daily audit
+        run: python boatrace_oos/audit_20260828_36r.py
