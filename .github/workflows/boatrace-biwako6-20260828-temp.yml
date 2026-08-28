@@ -33,3 +33,4 @@ jobs:
           git checkout
       - name: Run daily audit
         run: python boatrace_oos/audit_20260828_36r.py
+      # rerun after SUI input fix
