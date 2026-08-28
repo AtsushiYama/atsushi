@@ -25,7 +25,7 @@ print('CASE BIWAKO11',code,flush=True); print('PRESENT',code in cd,code in td,co
 if code in td and code in sd:
  raw_tkz=td[code]; raw_sui_list=[sd[code]]; print('USING_OFFICIAL_PREVIEW',flush=True)
 else:
- raw_tkz=manual_tkz; raw_sui_list=[{'風速(m)':1.0,'波の高さ(cm)':1.0,'風向':w,'天候':0} for w in range(1,9)]; print('USING_SCREENSHOT_PREVIEW',flush=True)
+ raw_tkz=manual_tkz; raw_sui_list=[{'風速(m)':1.0,'波の高さ(cm)':1.0,'風向':w,'天候':1} for w in range(1,9)]; print('USING_SCREENSHOT_PREVIEW',flush=True)
 results=[]
 for raw_sui in raw_sui_list:
  x,err=build_feature_frame(card,raw_tkz,raw_sui,state,11,11); assert err is None,err
