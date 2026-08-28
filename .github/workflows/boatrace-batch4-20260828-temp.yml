@@ -33,3 +33,4 @@ jobs:
           git checkout
       - name: Run four exact inferences
         run: python boatrace_oos/infer_20260828_batch4_temp.py
+      # rerun after 三国9R source became available
