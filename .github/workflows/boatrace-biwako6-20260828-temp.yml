@@ -1,4 +1,4 @@
-name: BoatRace Gamagori2 20260828 Temp
+name: BoatRace Amagasaki11 20260828 Temp
 on:
   push:
     branches: [ master ]
