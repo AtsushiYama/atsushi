@@ -24,7 +24,7 @@ rows=[]
 for venue,v,rno in R:
  code=f'20260828{v:02d}{rno:02d}'
  if not all(code in z for z in [cd,td,sd,rd,pdct]): print('MISSING',venue,rno,code,[code in z for z in [cd,td,sd,rd,pdct]],flush=True); continue
- x,err=build_feature_frame(cd[code],td[code],[sd[code]],state,v,rno)
+ x,err=build_feature_frame(cd[code],td[code],sd[code],state,v,rno)
  if err: print('ERR',venue,rno,err,flush=True); continue
  raw=booster.predict(x[FEATURES]); strength,probs,combos,p4=pl_top4(raw,x.boat.to_numpy()); cls='S' if p4>=S_THR else 'A' if p4>=A_THR else 'skip'
  rr=rd[code]; actual=f"{int(rr['1着_艇番'])}-{int(rr['2着_艇番'])}-{int(rr['3着_艇番'])}"; hit=actual in combos
