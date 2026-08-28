@@ -19,19 +19,21 @@ for dt in pd.date_range('2026-01-01','2026-08-27',freq='D'):
 print('ROLLED_2026_TO_0827',flush=True)
 cards=read_csv(SRC/'data/programs/race_cards/2026/08/28.csv'); tkz=read_csv(SRC/'data/previews/tkz/2026/08/28.csv'); sui=read_csv(SRC/'data/previews/sui/2026/08/28.csv'); od3=read_csv(SRC/'data/previews/od3/2026/08/28.csv')
 cd={str(r['レースコード']):r for _,r in cards.iterrows()}; td={str(r['レースコード']):r for _,r in tkz.iterrows()}; sd={str(r['レースコード']):r for _,r in sui.iterrows()}; od={str(r['レースコード']):r for _,r in od3.iterrows()}
-code='202608281310'; card=cd[code]; exh=[6.85,6.87,6.86,6.84,6.85,6.96]
+code='202608281710'; card=cd[code]; exh=[6.76,6.74,6.72,6.77,6.77,6.79]
 manual_tkz={f'艇{i}_展示タイム':v for i,v in enumerate(exh,1)}
-print('CASE AMAGASAKI10',code,flush=True); print('PRESENT',code in cd,code in td,code in sd,code in od,flush=True)
+print('CASE MIYAJIMA10',code,flush=True); print('PRESENT',code in cd,code in td,code in sd,code in od,flush=True)
 if code in td and code in sd:
  raw_tkz=td[code]; raw_sui_list=[sd[code]]; print('USING_OFFICIAL_PREVIEW',flush=True)
 else:
- raw_tkz=manual_tkz; raw_sui_list=[{'風速(m)':0.0,'波の高さ(cm)':0.0,'風向':w,'天候':1} for w in range(1,9)]; print('USING_SCREENSHOT_PREVIEW',flush=True)
+ raw_tkz=manual_tkz; raw_sui_list=[{'風速(m)':3.0,'波の高さ(cm)':3.0,'風向':w,'天候':1} for w in range(1,9)]; print('USING_SCREENSHOT_PREVIEW',flush=True)
 results=[]
 for raw_sui in raw_sui_list:
- x,err=build_feature_frame(card,raw_tkz,raw_sui,state,13,10); assert err is None,err
+ x,err=build_feature_frame(card,raw_tkz,raw_sui,state,17,10); assert err is None,err
  raw=booster.predict(x[FEATURES]); strength,topprob,combos,p4=pl_top4(raw,x.boat.to_numpy()); cls='S' if p4>=S_THR else 'A' if p4>=A_THR else 'skip'; results.append((raw_sui,x,topprob,combos,p4,cls))
  print('WIND_INPUT',raw_sui.get('風向'),'P4',repr(p4),'CLASS',cls,'TOP4','|'.join(combos),'TOPPROB','|'.join(f'{v:.10f}' for v in topprob),flush=True)
-chosen=results[0]
+if len(results)>1:
+ chosen=next((z for z in results if z[0].get('風向')==5),results[0])
+else: chosen=results[0]
 raw_sui,x,topprob,combos,p4,cls=chosen
 print('ACTUAL_P4',repr(p4),'ACTUAL_CLASS',cls,'TOP4','|'.join(combos),'TOPPROB','|'.join(f'{v:.10f}' for v in topprob),flush=True)
 print('EXHIBIT','|'.join(f'{v:.2f}' for v in x.sort_values('boat')['exhibit'].to_numpy()),flush=True)
