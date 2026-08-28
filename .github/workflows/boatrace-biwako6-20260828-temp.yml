@@ -1,4 +1,4 @@
-name: BoatRace Biwako11 20260828 Temp Fix
+name: BoatRace Tamagawa9 20260828 Temp
 on:
   push:
     branches: [ master ]
