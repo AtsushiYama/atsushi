@@ -18,7 +18,7 @@ for dt in pd.date_range('2026-01-01','2026-08-27',freq='D'):
 print('ROLLED_2026_TO_0827',flush=True)
 base=SRC/'data'; cards=read_csv(base/'programs/race_cards/2026/08/28.csv'); tkz=read_csv(base/'previews/tkz/2026/08/28.csv'); sui=read_csv(base/'previews/sui/2026/08/28.csv'); od3=read_csv(base/'previews/od3/2026/08/28.csv'); res=read_csv(base/'results/realtime/2026/08/28.csv'); pay=read_csv(base/'results/payouts/2026/08/28.csv')
 D=lambda df:{str(r['レースコード']):r for _,r in df.iterrows()}; cd,td,sd,od,rd,pdct=map(D,[cards,tkz,sui,od3,res,pay])
-R=[('唐津',23,8),('尼崎',13,5),('津',9,5),('唐津',23,9),('びわこ',11,5),('三国',10,9),('宮島',17,5),('尼崎',13,6),('びわこ',11,6),('三国',10,10),('びわこ',11,7),('尼崎',13,7),('宮島',17,7),('尼崎',13,8),('津',9,9),('びわこ',11,9),('多摩川',5,7),('尼崎',13,9),('平和島',4,7),('津',9,10),('尼崎',13,10),('宮島',17,10),('津',9,11),('びわこ',11,11),('多摩川',5,9),('蒲郡',7,2),('尼崎',13,11),('桐生',1,3),('宮島',17,11),('津',9,12),('びわこ',11,12),('丸亀',15,5),('蒲郡',7,5),('丸亀',15,6),('蒲郡',7,6),('丸亀',15,8)]
+R=[('桐生',1,3),('桐生',1,10),('桐生',1,11),('平和島',4,7),('平和島',4,8),('多摩川',5,1),('多摩川',5,4),('多摩川',5,7),('多摩川',5,9),('蒲郡',7,1),('蒲郡',7,2),('蒲郡',7,5),('蒲郡',7,6),('蒲郡',7,7),('蒲郡',7,8),('蒲郡',7,9),('蒲郡',7,10),('蒲郡',7,11),('蒲郡',7,12),('津',9,1),('津',9,5),('津',9,9),('津',9,10),('津',9,11),('津',9,12),('三国',10,1),('三国',10,2),('三国',10,3),('三国',10,5),('三国',10,6),('三国',10,7),('三国',10,9),('三国',10,10),('びわこ',11,3),('びわこ',11,4),('びわこ',11,5),('びわこ',11,6),('びわこ',11,7),('びわこ',11,9),('びわこ',11,11),('びわこ',11,12),('尼崎',13,1),('尼崎',13,4),('尼崎',13,5),('尼崎',13,6),('尼崎',13,7),('尼崎',13,8),('尼崎',13,9),('尼崎',13,10),('尼崎',13,11),('鳴門',14,1),('鳴門',14,2),('鳴門',14,3),('鳴門',14,8),('丸亀',15,5),('丸亀',15,6),('丸亀',15,8),('丸亀',15,9),('丸亀',15,11),('宮島',17,1),('宮島',17,2),('宮島',17,3),('宮島',17,4),('宮島',17,5),('宮島',17,7),('宮島',17,10),('宮島',17,11),('唐津',23,2),('唐津',23,3),('唐津',23,5),('唐津',23,6),('唐津',23,7),('唐津',23,8),('唐津',23,9)]
 perm=['-'.join(map(str,p)) for p in itertools.permutations(range(1,7),3)]; meta={'レースコード','レース日','レース場','レース回','締切時刻','取得日時'}
 rows=[]
 for venue,v,rno in R:
@@ -44,6 +44,6 @@ for venue,v,rno in R:
  print('ROW',venue,rno,f'{p4:.9f}',cls,'|'.join(combos),actual,'HIT' if hit else 'MISS',f'PAY={payout:.0f}',f'COMB={comb:.3f}' if np.isfinite(comb) else 'COMB=NA','BUY' if eligible else 'NO',flush=True)
 df=pd.DataFrame(rows)
 print('COUNT',len(df),df.cls.value_counts().to_dict(),flush=True)
-for label,mask in [('AS_ALL',df.cls!='skip'),('A_ONLY',df.cls=='A'),('S_ONLY',df.cls=='S'),('ODDS3',df.eligible)]:
+for label,mask in [('ALL_SCREENED',pd.Series([True]*len(df))),('AS_ALL',df.cls!='skip'),('A_ONLY',df.cls=='A'),('S_ONLY',df.cls=='S'),('ODDS3',df.eligible)]:
  q=df[mask]; n=len(q); hits=int(q.hit.sum()); stake=400*n; ret=float(q.ret.sum()); roi=(ret/stake*100 if stake else np.nan); print('SUMMARY',label,'N',n,'HITS',hits,'HITRATE',f'{hits/n*100:.2f}' if n else 'NA','STAKE',stake,'RETURN',f'{ret:.0f}','PROFIT',f'{ret-stake:.0f}','ROI',f'{roi:.2f}' if n else 'NA',flush=True)
 print('SKIP_HIT_REFERENCE',int(df[df.cls=='skip'].hit.sum()),'/',len(df[df.cls=='skip']),flush=True)
