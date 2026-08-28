@@ -1,4 +1,4 @@
-name: BoatRace Biwako6 20260828 Temp
+name: BoatRace Mikuni10 20260828 Temp
 on:
   push:
     branches: [ master ]
@@ -29,7 +29,7 @@ jobs:
         run: |
           git clone --depth 1 --filter=blob:none --sparse https://github.com/BoatraceCSV/boatracecsv.github.io.git boatrace_oos/source
           cd boatrace_oos/source
-          git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/previews/tkz/2026/08 data/previews/sui/2026/08 data/previews/od3/2026/08
+          git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/previews/od3/2026/08
           git checkout
       - name: Run exact inference
-        run: python boatrace_oos/infer_20260828_biwako6_temp.py
+        run: python boatrace_oos/infer_20260828_mikuni10_temp.py
