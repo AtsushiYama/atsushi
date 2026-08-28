@@ -38,7 +38,7 @@ def roll_state(state,end='2026-08-28'):
         cd,rd=D(cards),D(res); keys=[]
         for code in set(cd)&set(rd):
             if len(code)>=12 and code.isdigit(): keys.append((int(code[-2:]),int(code[-4:-2]),code))
-        for rno,v,code in sorted(keys): update_state_from_race(cd[code],rd[code],state,v,rno)
+        for rno,v,code in sorted(keys): update_state_from_race(cd[code],rd[code],state,v)
     return state
 
 def official_b_cards(dt):
@@ -65,7 +65,6 @@ def official_b_cards(dt):
     return pd.DataFrame(out)
 
 def scenario_patterns():
-    # 2025実測の展示・気象を race-code 単位で結合し、固定seedで30レース抽出。
     pairs=[]
     for tkzp in sorted((SRC/'data/previews/tkz/2025').glob('*/*.csv')):
         rel=tkzp.relative_to(SRC/'data/previews/tkz/2025'); suip=SRC/'data/previews/sui/2025'/rel
@@ -108,14 +107,12 @@ def main():
     booster=lgb.Booster(model_file=str(MODEL)); assert booster.feature_name()==FEATURES
     with gzip.open(HISTORY,'rb') as f: base=pickle.load(f)
     patterns=scenario_patterns()
-    # 回帰: 8/28は履歴を8/27まで進めて既知74Rと照合
     import copy
     s28=roll_state(copy.deepcopy(base),'2026-08-27')
     c28=read_csv(SRC/'data/programs/race_cards/2026/08/28.csv')
     a28=screen(c28,s28,booster,patterns); got28={(v,r) for v,r,_,_,k,_ in a28 if k}
     print('REGRESSION_0828',len(c28),len(got28),'EXPECTED',len(EXPECTED_0828),'MATCH',got28==EXPECTED_0828,flush=True)
     print('MISSING_0828',sorted(EXPECTED_0828-got28),flush=True); print('EXTRA_0828',sorted(got28-EXPECTED_0828),flush=True)
-    # 本番: 8/28終了まで履歴更新、8/29 B-fileカードを同一方式で評価
     s29=roll_state(copy.deepcopy(base),'2026-08-28'); c29=official_b_cards(TARGET); a29=screen(c29,s29,booster,patterns)
     kept=[x for x in a29 if x[4]]
     print('RESULT_0829 TOTAL',len(a29),'KEEP',len(kept),'EXCLUDE',len(a29)-len(kept),'RATE',f'{len(kept)/len(a29):.6f}',flush=True)
