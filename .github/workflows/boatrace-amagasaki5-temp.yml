@@ -42,3 +42,4 @@ jobs:
             boatrace_oos/history.pkl.gz
           retention-days: 1
           if-no-files-found: error
+# rerun 2026-08-29 15:03 JST to refresh exact runtime artifact
