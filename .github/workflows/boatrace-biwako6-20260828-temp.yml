@@ -10,20 +10,21 @@ permissions:
 jobs:
   infer:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Install dependencies
-        run: python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' 'scikit-learn==1.8.0'
-      - name: Restore exact frozen runtime artifact
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          rm -f boatrace_oos/boatrace_strength_v1_lgbm.txt boatrace_oos/history.pkl.gz
-          gh run download 33138084304 -n boatrace-strength-v1-runtime-20260828 -D boatrace_oos
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full
+          python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' 'numba==0.61.2' 'scikit-learn==1.8.0' requests
+      - name: Rebuild exact frozen runtime
+        run: |
+          sed -i 's/max_workers=4/max_workers=32/' boatrace_oos/bootstrap_frozen.py
+          python boatrace_oos/bootstrap_frozen.py
           sha256sum boatrace_oos/boatrace_strength_v1_lgbm.txt
       - name: Sparse checkout source
         run: |
