@@ -2,7 +2,7 @@
 import copy,gzip,pickle,hashlib
 import pandas as pd, numpy as np, lightgbm as lgb
 from run_oos import *
-from screen_20260829 import read_csv,D,roll_state,MODEL,SRC,MODEL_SHA,FEATURES,CAT
+from screen_20260829 import read_csv,D,roll_state,MODEL,SRC,MODEL_SHA,FEATURES
 DATE='2026-08-29'; VENUE=7; RNO=10
 EX=[6.72,6.90,6.88,6.82,6.84,6.80]
 WIND_SPEED=1.0; WAVE=0.0; WEATHER=3
