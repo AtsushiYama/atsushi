@@ -31,3 +31,4 @@ jobs:
           git checkout
       - name: Run fast venue audit
         run: python boatrace_oos/audit_20260801_0828_venue_fast.py
+      # hit-rate rerun
