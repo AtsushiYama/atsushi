@@ -19,16 +19,30 @@ def main():
  rows=[]
  for dt in pd.date_range('2026-08-01','2026-08-28',freq='D'):
   y,m,d=dt.strftime('%Y'),dt.strftime('%m'),dt.strftime('%d'); cards=read_csv(SRC/f'data/programs/race_cards/{y}/{m}/{d}.csv'); res=read_csv(SRC/f'data/results/realtime/{y}/{m}/{d}.csv'); tkz=read_csv(SRC/f'data/previews/tkz/{y}/{m}/{d}.csv'); sui=read_csv(SRC/f'data/previews/sui/{y}/{m}/{d}.csv')
-  cd,td,sd=D(cards),D(tkz),D(sui); dayn=0
-  for code in sorted(set(cd)&set(td)&set(sd)):
+  cd,rd,td,sd=D(cards),D(res),D(tkz),D(sui); dayn=0
+  for code in sorted(set(cd)&set(td)&set(sd)&set(rd)):
    if len(code)<12 or not code.isdigit(): continue
    v=int(code[-4:-2]); rno=int(code[-2:]); x,err=build_feature_frame(cd[code],td[code],sd[code],state,v,rno)
    if err: continue
-   raw=booster.predict(x[FEATURES]); _,_,_,p4=pl_top4(raw,x.boat.to_numpy()); cls='S' if p4>=S_THR else 'A' if p4>=A_THR else 'skip'; venue=VENUE_CODE_TO_NAME.get(v,str(v)); rows.append((dt.strftime('%Y-%m-%d'),venue,rno,code,p4,cls)); dayn+=cls in ('A','S')
-  print('DAY',dt.strftime('%Y-%m-%d'),'AS',dayn,'PREVIEW',len(set(cd)&set(td)&set(sd)),flush=True)
+   raw=booster.predict(x[FEATURES]); _,_,combos,p4=pl_top4(raw,x.boat.to_numpy()); cls='S' if p4>=S_THR else 'A' if p4>=A_THR else 'skip'; venue=VENUE_CODE_TO_NAME.get(v,str(v))
+   rr=rd[code]
+   try: actual=f"{int(float(rr['1着_艇番']))}-{int(float(rr['2着_艇番']))}-{int(float(rr['3着_艇番']))}"
+   except: actual=''
+   hit=actual in combos if actual else False
+   rows.append((dt.strftime('%Y-%m-%d'),venue,rno,code,p4,cls,actual,hit,'|'.join(combos))); dayn+=cls in ('A','S')
+  print('DAY',dt.strftime('%Y-%m-%d'),'AS',dayn,'PREVIEW_RESULT',len(set(cd)&set(td)&set(sd)&set(rd)),flush=True)
   if not cards.empty and not res.empty: advance(state,cards,res)
- df=pd.DataFrame(rows,columns=['date','venue','race_no','code','p4','class']); print('TOTAL_ROWS',len(df),'TOTAL_AS',int(df['class'].isin(['A','S']).sum()),flush=True)
- for i,(venue,g) in enumerate(sorted(df.groupby('venue'),key=lambda kv:(-int(kv[1]['class'].isin(['A','S']).sum()),kv[0])),1):
-  a=int((g['class']=='A').sum()); s=int((g['class']=='S').sum()); n=a+s; total=len(g); print('VENUE',i,venue,'RACES',total,'A',a,'S',s,'AS',n,'RATE_ALL',f'{n/total*100:.2f}',flush=True)
+ df=pd.DataFrame(rows,columns=['date','venue','race_no','code','p4','class','actual','hit','top4']); print('TOTAL_ROWS',len(df),'TOTAL_AS',int(df['class'].isin(['A','S']).sum()),flush=True)
+ aggs=[]
+ for venue,g in df.groupby('venue'):
+  ga=g[g['class']=='A']; gs=g[g['class']=='S']; gas=g[g['class'].isin(['A','S'])]
+  an=len(ga); ah=int(ga.hit.sum()); sn=len(gs); sh=int(gs.hit.sum()); n=len(gas); h=int(gas.hit.sum())
+  ar=ah/an*100 if an else np.nan; sr=sh/sn*100 if sn else np.nan; rr=h/n*100 if n else np.nan
+  aggs.append((venue,an,ah,ar,sn,sh,sr,n,h,rr))
+ for i,(venue,an,ah,ar,sn,sh,sr,n,h,rr) in enumerate(sorted(aggs,key=lambda x:(-x[7],x[0])),1):
+  print('VENUEHIT',i,venue,'A_N',an,'A_HIT',ah,'A_RATE',f'{ar:.2f}' if np.isfinite(ar) else 'NA','S_N',sn,'S_HIT',sh,'S_RATE',f'{sr:.2f}' if np.isfinite(sr) else 'NA','AS_N',n,'AS_HIT',h,'AS_RATE',f'{rr:.2f}' if np.isfinite(rr) else 'NA',flush=True)
+ print('OVERALL_A',len(df[df['class']=='A']),int(df[df['class']=='A'].hit.sum()),f"{df[df['class']=='A'].hit.mean()*100:.2f}",flush=True)
+ print('OVERALL_S',len(df[df['class']=='S']),int(df[df['class']=='S'].hit.sum()),f"{df[df['class']=='S'].hit.mean()*100:.2f}",flush=True)
+ print('OVERALL_AS',len(df[df['class'].isin(['A','S'])]),int(df[df['class'].isin(['A','S'])].hit.sum()),f"{df[df['class'].isin(['A','S'])].hit.mean()*100:.2f}",flush=True)
  d28=df[df.date=='2026-08-28']; print('REG_0828_AS',int(d28['class'].isin(['A','S']).sum()),'EXPECTED',41,flush=True)
 if __name__=='__main__': main()
