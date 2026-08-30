@@ -27,8 +27,8 @@ jobs:
         run: |
           git clone --depth 1 --filter=blob:none --sparse https://github.com/BoatraceCSV/boatracecsv.github.io.git boatrace_oos/source
           cd boatrace_oos/source
-          git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/previews/tkz/2026/08 data/previews/sui/2026/08
+          git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/results/payouts/2026 data/previews/tkz/2026/08 data/previews/sui/2026/08 data/previews/od3/2026/08
           git checkout
       - name: Run fast venue audit
         run: python boatrace_oos/audit_20260801_0828_venue_fast.py
-      # hit-rate rerun
+      # odds3 ROI rerun
