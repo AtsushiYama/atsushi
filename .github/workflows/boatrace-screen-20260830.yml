@@ -12,7 +12,7 @@ permissions:
 jobs:
   screen:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,8 +24,9 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq p7zip-full
+          sed -i 's/ThreadPoolExecutor(max_workers=4)/ThreadPoolExecutor(max_workers=16)/' boatrace_oos/bootstrap_frozen.py
           python boatrace_oos/bootstrap_frozen.py
-          sha256sum boatrace_oos/boatrace_strength_v1_lgbm.txt
+          test "$(sha256sum boatrace_oos/boatrace_strength_v1_lgbm.txt | awk '{print $1}')" = "334b3a54a482a957f50c51b40614797821ae765d221734b92b95f1d4fb96cde0"
       - name: Sparse checkout source data
         run: |
           git clone --depth 1 --filter=blob:none --sparse https://github.com/BoatraceCSV/boatracecsv.github.io.git boatrace_oos/source
