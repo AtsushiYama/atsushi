@@ -17,9 +17,9 @@ for dt in pd.date_range('2026-01-01','2026-08-30',freq='D'):
  keys.sort()
  for race_no,venue_code,code in keys: update_state_from_race(cdict[code],rdict[code],state,venue_code)
 cards=read_csv(SRC/'data/programs/race_cards/2026/08/31.csv'); cd={str(r['レースコード']):r for _,r in cards.iterrows()}
-code='202608310610'; venue=6; rno=10; card=cd[code]
-tkz=pd.Series({'艇1_展示タイム':'6.67','艇2_展示タイム':'6.65','艇3_展示タイム':'6.66','艇4_展示タイム':'6.64','艇5_展示タイム':'6.70','艇6_展示タイム':'6.63'})
-sui=pd.Series({'風速(m)':'5','波の高さ(cm)':'3','風向':'5','天候':'1'})
+code='202608311610'; venue=16; rno=10; card=cd[code]
+tkz=pd.Series({'艇1_展示タイム':'6.78','艇2_展示タイム':'6.81','艇3_展示タイム':'6.76','艇4_展示タイム':'6.86','艇5_展示タイム':'6.74','艇6_展示タイム':'6.88'})
+sui=pd.Series({'風速(m)':'2','波の高さ(cm)':'3','風向':'5','天候':'1'})
 x,err=build_feature_frame(card,tkz,sui,state,venue,rno); assert err is None,err
 raw=booster.predict(x[FEATURES]); strength,topprob,combos,p4=pl_top4(raw,x.boat.to_numpy()); cls='S' if p4>=S_THR else 'A' if p4>=A_THR else 'skip'
 print('P4',repr(p4),flush=True); print('CLASS',cls,flush=True); print('TOP4','|'.join(combos),flush=True); print('TOPPROB','|'.join(f'{v:.10f}' for v in topprob),flush=True); print('STRENGTHS','|'.join(f'{v:.8f}' for v in strength),flush=True)
