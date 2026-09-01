@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import gzip,pickle,hashlib
+import gzip,pickle,hashlib,math
 import pandas as pd, lightgbm as lgb
 from run_oos import FEATURES,MODEL_SHA,A_THR,S_THR,read_csv,update_state_from_race,build_feature_frame,pl_top4,VENUE_CODE_TO_NAME
 ROOT=Path(__file__).resolve().parent; SRC=ROOT/'source'; MODEL=ROOT/'boatrace_strength_v1_lgbm.txt'; HISTORY=ROOT/'history.pkl.gz'
@@ -27,6 +27,7 @@ def idx(path):
 cards=idx(SRC/'data/programs/race_cards/2026/08/31.csv')
 tkz=idx(SRC/'data/previews/tkz/2026/08/31.csv'); sui=idx(SRC/'data/previews/sui/2026/08/31.csv')
 res=idx(SRC/'data/results/realtime/2026/08/31.csv'); pay=idx(SRC/'data/results/payouts/2026/08/31.csv')
+od3=idx(SRC/'data/previews/od3/2026/08/31.csv')
 rows=[]
 for venue,races in KEEP.items():
  for rno in races:
@@ -40,18 +41,28 @@ for venue,races in KEEP.items():
   actual=f"{res[code].get('1着_艇番')}-{res[code].get('2着_艇番')}-{res[code].get('3着_艇番')}"
   hit=actual in combos
   payout=float(str(pay[code].get('3連単_払戻金','0')).replace(',','') or 0)
-  # 4 points x 100 yen = 400 yen stake; hit return is official 100-yen payout.
   ret=payout if hit else 0.0
-  rows.append(dict(code=code,venue=VENUE_CODE_TO_NAME.get(venue),rno=rno,p4=p4,cls=cls,top4='|'.join(combos),actual=actual,hit=hit,payout100=payout,stake_all400=400,ret_all=ret,error=''))
+  odds=[]; comp=None; odds_ts=None
+  if code in od3:
+   odds_ts=str(od3[code].get('取得日時',''))
+   for c in combos:
+    v=str(od3[code].get('3連単_'+c,'')).strip()
+    try:o=float(v)
+    except:o=0.0
+    odds.append(o)
+   if len(odds)==4 and all(o>0 for o in odds): comp=1.0/sum(1.0/o for o in odds)
+  qualifies = cls in ('A','S') and comp is not None and comp>=3.0
+  rows.append(dict(code=code,venue=VENUE_CODE_TO_NAME.get(venue),rno=rno,p4=p4,cls=cls,top4='|'.join(combos),actual=actual,hit=hit,payout100=payout,stake_all400=400,ret_all=ret,odds='|'.join(str(v) for v in odds),composite_odds=comp,odds_acquired_at=odds_ts,qualifies_final=qualifies,error=''))
 df=pd.DataFrame(rows)
 df.to_csv('eval_20260831.csv',index=False)
-ok=df[df.error.eq('')].copy(); asdf=ok[ok.cls.isin(['A','S'])].copy()
+ok=df[df.error.eq('')].copy(); asdf=ok[ok.cls.isin(['A','S'])].copy(); final=ok[ok.qualifies_final.eq(True)].copy()
 def summ(label,d):
- n=len(d); h=int(d.hit.sum()); stake=400*n; ret=float(d.ret_all.sum());
- print(label,'N',n,'HITS',h,'HIT_RATE',f'{h/n*100:.3f}' if n else 'NA','STAKE',stake,'RETURN',int(ret),'ROI',f'{ret/stake*100:.3f}' if stake else 'NA','NET',int(ret-stake),flush=True)
+ n=len(d); hh=int(d.hit.sum()); stake=400*n; ret=float(d.ret_all.sum());
+ print(label,'N',n,'HITS',hh,'HIT_RATE',f'{hh/n*100:.3f}' if n else 'NA','STAKE',stake,'RETURN',int(ret),'ROI',f'{ret/stake*100:.3f}' if stake else 'NA','NET',int(ret-stake),flush=True)
 print('MODEL_SHA',h,flush=True); print('EXTRACTED_EXPECTED',sum(len(v) for v in KEEP.values()),'VALID',len(ok),'MISSING',len(df)-len(ok),flush=True)
 summ('ALL_EXTRACTED_TOP4',ok)
 summ('AFTER_STRENGTH_AS',asdf)
+summ('FINAL_AS_COMPOSITE_GE_3',final)
 print('CLASS_COUNTS',ok.cls.value_counts().to_dict(),flush=True)
-print('AS_HITS')
-for r in asdf[asdf.hit].sort_values(['venue','rno']).itertuples(): print(r.venue,r.rno,r.cls,f'P4={r.p4:.6f}',r.actual,int(r.payout100),flush=True)
+print('FINAL_RACES')
+for r in final.sort_values(['venue','rno']).itertuples(): print(r.venue,r.rno,r.cls,f'P4={r.p4:.6f}',f'COMP={r.composite_odds:.6f}',r.top4,'ACTUAL='+r.actual,'HIT='+str(bool(r.hit)),'PAY='+str(int(r.payout100)),'ODDS_AT='+str(r.odds_acquired_at),flush=True)
