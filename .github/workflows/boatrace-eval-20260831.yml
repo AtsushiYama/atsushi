@@ -1,4 +1,4 @@
-name: BoatRace Unified Audit Aug 2026
+name: BoatRace Unified Audit through Sep 1 2026
 on:
   push:
     branches: [ boatrace-infer-runner ]
@@ -6,44 +6,36 @@ on:
       - '.github/workflows/boatrace-eval-20260831.yml'
 permissions:
   contents: read
+  actions: read
 jobs:
   eval:
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Install dependencies
-        run: python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' 'scikit-learn==1.8.0' boatrace-lzh requests numba
-      - name: Rebuild frozen Strength-v1.0 runtime
+        run: python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' boatrace-lzh
+      - name: Restore frozen Strength-v1.0 runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq p7zip-full
-          sed -i 's/ThreadPoolExecutor(max_workers=4)/ThreadPoolExecutor(max_workers=16)/' boatrace_oos/bootstrap_frozen.py
-          python boatrace_oos/bootstrap_frozen.py
+          gh run download 33593445777 -n boatrace-strength-v1-runtime-20260902 -D boatrace_oos
           test "$(sha256sum boatrace_oos/boatrace_strength_v1_lgbm.txt | awk '{print $1}')" = "334b3a54a482a957f50c51b40614797821ae765d221734b92b95f1d4fb96cde0"
-      - name: Preserve frozen runtime
-        uses: actions/upload-artifact@v4
-        with:
-          name: boatrace-strength-v1-runtime-20260902
-          path: |
-            boatrace_oos/history.pkl.gz
-            boatrace_oos/boatrace_strength_v1_lgbm.txt
-          retention-days: 7
       - name: Checkout source data
         run: |
           git clone --depth 1 --filter=blob:none --sparse https://github.com/BoatraceCSV/boatracecsv.github.io.git boatrace_oos/source
           cd boatrace_oos/source
           git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/results/payouts/2026 data/previews/tkz/2025 data/previews/sui/2025 data/previews/tkz/2026 data/previews/sui/2026 data/previews/od3/2026
           git checkout
-      - name: Run unified audit through 8/31
+      - name: Run unified audit through 9/1
         run: python boatrace_oos/audit_daily_20260801_0831.py
       - uses: actions/upload-artifact@v4
         with:
-          name: audit-daily-20260801-0831
+          name: audit-daily-20260801-0901
           path: |
-            audit_daily_20260801_0831_summary.csv
-            audit_daily_20260801_0831_detail.csv
+            audit_daily_20260801_0901_summary.csv
+            audit_daily_20260801_0901_detail.csv
           retention-days: 7
