@@ -5,24 +5,24 @@ on:
     paths:
       - '.github/workflows/boatrace-eval-20260831.yml'
 permissions:
+  actions: read
   contents: read
 jobs:
   eval:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Install dependencies
-        run: python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' 'scikit-learn==1.8.0' boatrace-lzh requests numba
-      - name: Rebuild frozen runtime
+        run: python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' boatrace-lzh
+      - name: Restore frozen Strength-v1.0 runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq p7zip-full
-          sed -i 's/ThreadPoolExecutor(max_workers=4)/ThreadPoolExecutor(max_workers=16)/' boatrace_oos/bootstrap_frozen.py
-          python boatrace_oos/bootstrap_frozen.py
+          gh run download 33301553910 -n boatrace-strength-v1-runtime-20260830 -D boatrace_oos
           test "$(sha256sum boatrace_oos/boatrace_strength_v1_lgbm.txt | awk '{print $1}')" = "334b3a54a482a957f50c51b40614797821ae765d221734b92b95f1d4fb96cde0"
       - name: Checkout source data
         run: |
