@@ -1,4 +1,4 @@
-name: BoatRace Daily Audit Aug 2026
+name: BoatRace Unified Audit Aug 2026
 on:
   push:
     branches: [ boatrace-infer-runner ]
@@ -30,12 +30,12 @@ jobs:
           cd boatrace_oos/source
           git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/results/payouts/2026 data/previews/tkz/2026 data/previews/sui/2026 data/previews/od3/2026
           git checkout
-      - name: Run exact daily audit through 8/30
-        run: python boatrace_oos/audit_daily_20260801_0830_fast.py
+      - name: Run unified audit through 8/31
+        run: python boatrace_oos/audit_daily_20260801_0831.py
       - uses: actions/upload-artifact@v4
         with:
-          name: audit-daily-20260801-0830
+          name: audit-daily-20260801-0831
           path: |
-            audit_daily_20260801_0830_summary.csv
-            audit_daily_20260801_0830_detail.csv
+            audit_daily_20260801_0831_summary.csv
+            audit_daily_20260801_0831_detail.csv
           retention-days: 7
