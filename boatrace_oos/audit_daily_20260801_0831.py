@@ -39,7 +39,7 @@ def main():
     for dt in pd.date_range('2026-01-01','2026-07-31',freq='D'):
         y,m,d=dt.strftime('%Y'),dt.strftime('%m'),dt.strftime('%d'); roll_one_day(state,read_csv(SRC/f'data/programs/race_cards/{y}/{m}/{d}.csv'),read_csv(SRC/f'data/results/realtime/{y}/{m}/{d}.csv'))
     patterns=scenario_patterns(); rows=[]; daily=[]
-    for dt in pd.date_range('2026-08-01','2026-09-04',freq='D'):
+    for dt in pd.date_range('2026-08-01','2026-09-05',freq='D'):
         ds=dt.strftime('%Y-%m-%d'); y,m,d=dt.strftime('%Y'),dt.strftime('%m'),dt.strftime('%d'); base=SRC/'data'
         cards=read_csv(base/f'programs/race_cards/{y}/{m}/{d}.csv'); tkz=read_csv(base/f'previews/tkz/{y}/{m}/{d}.csv'); sui=read_csv(base/f'previews/sui/{y}/{m}/{d}.csv'); od3=read_csv(base/f'previews/od3/{y}/{m}/{d}.csv'); res=read_csv(base/f'results/realtime/{y}/{m}/{d}.csv'); pay=read_csv(base/f'results/payouts/{y}/{m}/{d}.csv')
         cd,td,sd,od,rd,pdct=map(D,[cards,tkz,sui,od3,res,pay]); dayrows=[]; errors=0
@@ -69,7 +69,7 @@ def main():
         print('DAY',ds,'SA',sa,'SCREENED_SA',screened,'FN',fn,'BUY',n,'HITS',hits,'STAKE',stake,'RETURN',f'{ret:.0f}','ROI',f'{roi:.2f}' if np.isfinite(roi) else 'NA','ERR',errors,flush=True)
         roll_one_day(state,cards,res)
     df=pd.DataFrame(rows); dd=pd.DataFrame(daily)
-    df.to_csv('audit_daily_20260801_0904_detail.csv',index=False); dd.to_csv('audit_daily_20260801_0904_summary.csv',index=False)
+    df.to_csv('audit_daily_20260801_0905_detail.csv',index=False); dd.to_csv('audit_daily_20260801_0905_summary.csv',index=False)
     active=dd[dd.stake>0].copy(); loss=active[active.roi<100]
     print('ACTIVE_DAYS',len(active),'LOSS_DAYS',len(loss),flush=True)
     print('TOTAL','BUY',int(active.purchases.sum()),'HITS',int(active.hits.sum()),'HIT_RATE',f'{active.hits.sum()/active.purchases.sum()*100:.2f}' if active.purchases.sum() else 'NA','STAKE',int(active.stake.sum()),'RETURN',f'{active.ret.sum():.0f}','ROI',f'{active.ret.sum()/active.stake.sum()*100:.2f}' if active.stake.sum() else 'NA','NET',f'{active.ret.sum()-active.stake.sum():.0f}',flush=True)
