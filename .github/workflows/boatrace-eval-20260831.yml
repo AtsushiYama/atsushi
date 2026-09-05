@@ -1,4 +1,4 @@
-name: BoatRace Unified Audit July 2026
+name: Check Turnmark May-Jun 2026 odds
 on:
   push:
     branches: [ boatrace-infer-runner ]
@@ -6,36 +6,74 @@ on:
       - '.github/workflows/boatrace-eval-20260831.yml'
 permissions:
   contents: read
-  actions: read
 jobs:
   eval:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install dependencies
-        run: python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' boatrace-lzh
-      - name: Restore frozen Strength-v1.0 runtime
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Install requests
+        run: python -m pip install --quiet requests pandas
+      - name: Check 2026-05-01 through 2026-06-30
         run: |
-          gh run download 33593445777 -n boatrace-strength-v1-runtime-20260902 -D boatrace_oos
-          test "$(sha256sum boatrace_oos/boatrace_strength_v1_lgbm.txt | awk '{print $1}')" = "334b3a54a482a957f50c51b40614797821ae765d221734b92b95f1d4fb96cde0"
-      - name: Checkout source data
-        run: |
-          git clone --depth 1 --filter=blob:none --sparse https://github.com/BoatraceCSV/boatracecsv.github.io.git boatrace_oos/source
-          cd boatrace_oos/source
-          git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/results/payouts/2026 data/previews/tkz/2025 data/previews/sui/2025 data/previews/tkz/2026 data/previews/sui/2026 data/previews/od3/2026
-          git checkout
-      - name: Run exact July audit
-        run: python boatrace_oos/audit_daily_20260801_0831.py
+          python - <<'PY'
+          import requests, pandas as pd
+          from datetime import date, timedelta
+          rows=[]
+          d=date(2026,5,1); end=date(2026,6,30)
+          while d<=end:
+              ds=d.strftime('%Y%m%d')
+              url=f'https://turnmark.github.io/api/v1/2026/{ds}.json'
+              try:
+                  r=requests.get(url,timeout=30)
+                  status=r.status_code
+                  if status!=200:
+                      rows.append(dict(date=str(d),status=status,races=0,full120=0,partial=0,zero=0,min_filled=None,max_filled=None,total_filled=0))
+                      d+=timedelta(days=1); continue
+                  j=r.json()
+                  race_counts=[]
+                  for st in (j.get('programs',{}).get('stadiums',{}) or {}).values():
+                      for race in (st.get('races',{}) or {}).values():
+                          tri=((race.get('odds') or {}).get('trifecta'))
+                          n=0
+                          if isinstance(tri,dict):
+                              for a in tri.values():
+                                  if not isinstance(a,dict): continue
+                                  for b in a.values():
+                                      if not isinstance(b,dict): continue
+                                      for v in b.values():
+                                          if v is not None: n+=1
+                          race_counts.append(n)
+                  rows.append(dict(
+                      date=str(d),status=status,races=len(race_counts),
+                      full120=sum(n==120 for n in race_counts),
+                      partial=sum(0<n<120 for n in race_counts),
+                      zero=sum(n==0 for n in race_counts),
+                      min_filled=min(race_counts) if race_counts else None,
+                      max_filled=max(race_counts) if race_counts else None,
+                      total_filled=sum(race_counts)
+                  ))
+              except Exception as e:
+                  rows.append(dict(date=str(d),status='ERR',races=0,full120=0,partial=0,zero=0,min_filled=None,max_filled=None,total_filled=0,error=repr(e)))
+              d+=timedelta(days=1)
+          df=pd.DataFrame(rows)
+          df.to_csv('turnmark_20260501_0630_coverage.csv',index=False)
+          ok=df[df.status.astype(str)=='200']
+          print('DAYS',len(df),'HTTP200',len(ok),'NON200',len(df)-len(ok))
+          print('RACES',int(ok.races.sum()),'FULL120',int(ok.full120.sum()),'PARTIAL',int(ok.partial.sum()),'ZERO',int(ok.zero.sum()))
+          print('MIN_FILLED_PER_DAY',ok.min_filled.min(),'MAX_FILLED_PER_DAY',ok.max_filled.max())
+          print('TOTAL_NON_NULL_TRIFECTA',int(ok.total_filled.sum()))
+          print('MAY_HTTP200',int(((df.date.str[:7]=='2026-05') & (df.status.astype(str)=='200')).sum()))
+          print('JUNE_HTTP200',int(((df.date.str[:7]=='2026-06') & (df.status.astype(str)=='200')).sum()))
+          print('DAYS_WITH_PARTIAL',','.join(ok.loc[ok.partial>0,'date'].tolist()))
+          print('DAYS_WITH_ZERO',','.join(ok.loc[ok.zero>0,'date'].tolist()))
+          print(df.to_string(index=False))
+          PY
       - uses: actions/upload-artifact@v4
         with:
-          name: audit-daily-20260701-0731
-          path: |
-            audit_daily_20260701_0731_summary.csv
-            audit_daily_20260701_0731_detail.csv
+          name: turnmark-20260501-0630-coverage
+          path: turnmark_20260501_0630_coverage.csv
           retention-days: 7
