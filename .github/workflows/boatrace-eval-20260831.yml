@@ -28,7 +28,7 @@ jobs:
         run: |
           git clone --depth 1 --filter=blob:none --sparse https://github.com/BoatraceCSV/boatracecsv.github.io.git boatrace_oos/source
           cd boatrace_oos/source
-          git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/results/payouts/2026 data/previews/tkz/2026 data/previews/sui/2026
+          git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/results/payouts/2026 data/previews/tkz/2025 data/previews/sui/2025 data/previews/tkz/2026 data/previews/sui/2026
           git checkout
       - name: Run May-Jun comparison
         run: python boatrace_oos/audit_turnmark_20260501_0630.py
