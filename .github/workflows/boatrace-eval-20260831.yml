@@ -1,4 +1,4 @@
-name: Compare May-Jun Turnmark odds
+name: BoatRace Unified Audit through Sep 6 2026
 on:
   push:
     branches: [ boatrace-infer-runner ]
@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install dependencies
-        run: python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' boatrace-lzh requests
+        run: python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' boatrace-lzh
       - name: Restore frozen Strength-v1.0 runtime
         env:
           GH_TOKEN: ${{ github.token }}
@@ -28,14 +28,14 @@ jobs:
         run: |
           git clone --depth 1 --filter=blob:none --sparse https://github.com/BoatraceCSV/boatracecsv.github.io.git boatrace_oos/source
           cd boatrace_oos/source
-          git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/results/payouts/2026 data/previews/tkz/2025 data/previews/sui/2025 data/previews/tkz/2026 data/previews/sui/2026
+          git sparse-checkout set data/programs/race_cards/2026 data/results/realtime/2026 data/results/payouts/2026 data/previews/tkz/2025 data/previews/sui/2025 data/previews/tkz/2026 data/previews/sui/2026 data/previews/od3/2026
           git checkout
-      - name: Run May-Jun comparison
-        run: python boatrace_oos/audit_turnmark_20260501_0630.py
+      - name: Run unified audit through 9/6
+        run: python boatrace_oos/audit_daily_20260801_0831.py
       - uses: actions/upload-artifact@v4
         with:
-          name: audit-turnmark-20260501-0630
+          name: audit-daily-20260801-0906
           path: |
-            audit_turnmark_20260501_0630_summary.csv
-            audit_turnmark_20260501_0630_detail.csv
+            audit_daily_20260801_0906_summary.csv
+            audit_daily_20260801_0906_detail.csv
           retention-days: 7
