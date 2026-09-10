@@ -10,19 +10,20 @@ permissions:
 jobs:
   eval:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Install dependencies
-        run: python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' boatrace-lzh
-      - name: Restore frozen Strength-v1.0 runtime
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          gh run download 33593445777 -n boatrace-strength-v1-runtime-20260902 -D boatrace_oos
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full
+          python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' 'numba==0.61.2' requests boatrace-lzh
+      - name: Rebuild frozen Strength-v1.0 runtime deterministically
+        run: |
+          python boatrace_oos/bootstrap_frozen.py
           test "$(sha256sum boatrace_oos/boatrace_strength_v1_lgbm.txt | awk '{print $1}')" = "334b3a54a482a957f50c51b40614797821ae765d221734b92b95f1d4fb96cde0"
       - name: Checkout source data
         run: |
