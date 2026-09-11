@@ -20,7 +20,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq p7zip-full
-          python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' 'numba==0.61.2' requests boatrace-lzh
+          python -m pip install --quiet 'pandas==2.2.3' 'numpy==2.2.6' 'lightgbm==4.6.0' 'numba==0.61.2' 'scikit-learn==1.7.2' requests boatrace-lzh
       - name: Rebuild frozen Strength-v1.0 runtime deterministically
         run: |
           python boatrace_oos/bootstrap_frozen.py
